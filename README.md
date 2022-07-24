@@ -11,7 +11,7 @@ Simple script that generates a pdf file with Magic the Gathering proxies ready t
 
 ## Usage
 
-Run the program with: `python3 mtg-proxy`
+Run the program with: `python3 mtg-proxy.py`
 
 
 # TODO
