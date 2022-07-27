@@ -33,12 +33,10 @@ class Card:
 
 def get_image_by_name(card):
 
-    api_url = "https://api.scryfall.com/cards/search?q=name=!\"" + card.name + "\"&unique=prints"
+    api_url = "https://api.scryfall.com/cards/search?q=name=\"" + card.name + "\"&unique=prints"
 
     if (card.set is not None):
-        api_url = "https://api.scryfall.com/cards/search?q=name=!\"" + card.name + "\"+e:" + card.set + "&unique=prints"
-
-    print(api_url)
+        api_url = "https://api.scryfall.com/cards/search?q=name=\"" + card.name + "\"+e:" + card.set + "&unique=prints"
 
     data = {}
     headers = {}
@@ -46,9 +44,18 @@ def get_image_by_name(card):
     response = requests.get(api_url, json=data, headers=headers)
 
     if (response.status_code == 200):
-        for i in range(response.json()["total_cards"]):
+        for i in range(len(response.json()["data"])):
+            double_face = False
+            if "card_faces" in response.json()["data"][i]:
+                double_face = True
+
             if(response.json()["data"][i]["highres_image"] is True):
-                return response.json()["data"][i]["image_uris"]["large"]
+                if double_face:
+                    if response.json()["data"][i]["card_faces"][0]["name"].upper() == card.name.upper():
+                        return response.json()["data"][i]["card_faces"][0]["image_uris"]["large"]
+                else:
+                    if response.json()["data"][i]["name"].upper() == card.name.upper():
+                        return response.json()["data"][i]["image_uris"]["large"]
 
     return None
 
@@ -121,10 +128,12 @@ def get_image_from_directory(name):
 
 
 def get_images_from_cards(cards):
+    card_index = 1
     for card in cards:
         image = get_image_from_directory(card.name)
         if(image is not None):
             card.image = image
+            print("%03d" % (card_index,) + "/" + "%03d" % (len(cards),) + "  From Directory:  " + card.name)
         else:
             # Not found image on directory
             image_url = get_image_by_name(card)
@@ -132,8 +141,18 @@ def get_images_from_cards(cards):
                 image = Image.open(requests.get(image_url, stream=True).raw)
                 img = resize_image(image)
                 card.image = img
+                print("%03d" % (card_index,) + "/" + "%03d" % (len(cards),) + "  From Scryfall:   " + card.name)
             else:
-                print("Card not found: ", card.name)
+                print("%03d" % (card_index,) + "/" + "%03d" % (len(cards),) + "  Card not found: ", card.name)
+        card_index += 1
+
+    # Remove cards without images
+    card_tmp = []
+    for card in cards:
+        if(card.image is not None):
+            card_tmp.append(card)
+
+    cards = card_tmp.copy()
 
     return cards
 
@@ -141,12 +160,14 @@ def get_images_from_cards(cards):
 def generate_output(cards):
     all_images = []
 
-    # card_remaining = len(cards)
     card_index = 0
 
     card_remaining = 0
+
     for card in cards:
         card_remaining += int(card.amount)
+
+    total_cards = card_remaining
 
     copies_left = int(cards[0].amount)
 
@@ -161,8 +182,6 @@ def generate_output(cards):
                     if(card_index < len(cards)):
                         copies_left = int(cards[card_index].amount) - 1
 
-                #current_card = cards[card_index]
-
                 if(card_index < len(cards)):
                     dst.paste(cards[card_index].image, (j*cardWidth + leftOffset, i*cardHeight + topOffset))
                     card_remaining -= 1
@@ -173,16 +192,25 @@ def generate_output(cards):
 
     all_images[0].save(out_file, "PDF", resolution=300.0, save_all=True, append_images=all_images[1:])
 
-    print(len(cards), " cards exported")
+    print("==================================")
+    print("FINISH:        " + str(total_cards) + " cards exported")
+    print("==================================")
 
 
 def main():
 
     process_arguments()
 
+    print("==================================")
+    print("STARTS with:")
+    print("     Cards File    : " + os.getcwd() + "/" + card_file)
+    print("     Images Folder : " + os.getcwd() + "/" + images_folder + "/")
+    print("     Output File   : " + os.getcwd() + "/" + out_file)
+    print("==================================")
+
     cards = read_card_file()
 
-    get_images_from_cards(cards)
+    cards = get_images_from_cards(cards)
 
     generate_output(cards)
 
