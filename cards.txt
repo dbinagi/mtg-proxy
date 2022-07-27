@@ -1,0 +1,4 @@
+9 blood artist
+2 blood artist[sld]
+1 red elemental blast
+2 island[m21]
