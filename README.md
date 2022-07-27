@@ -13,11 +13,14 @@ Simple script that generates a pdf file with Magic the Gathering proxies ready t
 
 Run the program with: `python3 mtg-proxy.py`
 
-Available arguments:
+### Available arguments:
 
 **--help**: Show usage and commands
+
 **--cards**: Specify the location of the cards.txt file
+
 **--out**: The name of the output PDF file
+
 **--images**: Path where custom proxies are located
 
 ### cards.txt format
